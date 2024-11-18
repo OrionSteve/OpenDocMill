@@ -1,0 +1,86 @@
+Command failed: data=$VAR1 = [
+          {
+            'name' => 'INVOICE',
+            'fields' => {
+                          'zeroRated' => '0',
+                          'total' => '414.29',
+                          'vatRate' => '15%',
+                          'date' => '08/04/09',
+                          'account' => '508',
+                          'taxable' => '360.25',
+                          'comment' => 'Note: Items supplied under pre-agreed terms and conditions',
+                          'terms' => 'Payment due 28 days from date of invoice',
+                          'invoiceNo' => 'SL0010040',
+                          'vat' => '54.04'
+                        },
+            'tables' => {
+                          'address' => [
+                                         {
+                                           'line' => 'CHURCHILL ENGINEERING'
+                                         },
+                                         {
+                                           'line' => '63, TUDOR CLOSE'
+                                         },
+                                         {
+                                           'line' => 'LONDON'
+                                         },
+                                         {
+                                           'line' => 'NW3 4AG'
+                                         },
+                                         {
+                                           'line' => 'UNITED KINGDOM'
+                                         }
+                                       ],
+                          'items' => [
+                                       {
+                                         'ref' => 'RAYD-2009-0406',
+                                         'price' => '111.51',
+                                         'qty' => '1',
+                                         'date' => '10 Apr',
+                                         'product' => 'Beef -Aberdeen Angus -5kg',
+                                         'req' => '3215783'
+                                       },
+                                       {
+                                         'date' => '10 Apr',
+                                         'product' => 'Apples Cox -each',
+                                         'req' => '3215784',
+                                         'price' => '6.78',
+                                         'ref' => 'RAYD-2009-0406',
+                                         'qty' => '100'
+                                       },
+                                       {
+                                         'product' => 'Apples Bramley -per Kilo',
+                                         'req' => '3215784',
+                                         'date' => '10 Apr',
+                                         'qty' => '10',
+                                         'price' => '21.56',
+                                         'ref' => 'RAYD-2009-0406'
+                                       }
+                                     ]
+                        }
+          },
+          {
+            'name' => '#footer'
+          }
+        ];
+; cmd=[/usr/local/bin/python-orion runOpenDocMill.py invoiceTemplate.odt out.odt]; output=[GOATinvoiceTemplate.odt
+File: invoiceTemplate.odt
+Traceback (most recent call last):
+  File "/code/workspace/sjr_local2/star1/misc/OpenDocMill/runOpenDocMill.py", line 30, in <module>
+    reportTemplate = OpenDocMill.Reader.readODT(inTemplate) # load template
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/code/workspace/sjr_local2/star1/misc/OpenDocMill/OpenDocMill/Reader.py", line 331, in readODT
+    return readBookODT(filename)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/code/workspace/sjr_local2/star1/misc/OpenDocMill/OpenDocMill/Reader.py", line 315, in readBookODT
+    template.setContentTemplate(readBookContentXML(content, filename, template.appendImage))
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/code/workspace/sjr_local2/star1/misc/OpenDocMill/OpenDocMill/Reader.py", line 297, in readBookContentXML
+    return readXML(xmlStream, filename + "#content.xml", ODTBookContentVisitor, OpenDocMill.BookContentTemplate, appendImage)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/code/workspace/sjr_local2/star1/misc/OpenDocMill/OpenDocMill/Reader.py", line 290, in readXML
+    nss = xml.dom.ext.SeekNss(doc)
+          ^^^^^^^^^^^
+AttributeError: module 'xml.dom' has no attribute 'ext']
+ at createInvoice.pl line 74, <GEN1> line 19.
+	main::writeReport("invoiceTemplate.odt", ARRAY(0x55d0d34b7618), "out.odt") called at createInvoice.pl line 77
