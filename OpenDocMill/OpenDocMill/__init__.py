@@ -1,9 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import zipfile
-import StringIO
+import io
 import os.path
 import re
+import xml.dom.minidom
 
 class DataError(Exception): pass
 class TemplateError(Exception): pass
@@ -14,14 +15,13 @@ def getStructure(ob):
     if hasattr(ob, "getStructure"): return ob.getStructure()
     return ob
 
-
 def oldFormatToBookData(data):
     bd = OpenDocMill.BookData()
     if not isinstance(data, (list, tuple)):
         raise TypeError("Bad old format: should be list of dicts")
     for i, row in enumerate(data):
-        if not isinstance(row, dict) or not row.has_key("name"):
-            raise TypeError("Bad format for section %d: should be dict(name='', fields={}, tables={}, images={}" % i)
+        if not isinstance(row, dict) or "name" not in row:
+            raise TypeError("Bad format for section %d: should be dict(name='', fields={}, tables={}, images={})" % i)
         name = row["name"]
         sd = SectionData(
             fields=row.get("fields", {}),
@@ -96,7 +96,7 @@ class SectionData(object):
         fieldErrors = []
         for name in fields:
             val = fields[name]
-            if not isinstance(val, (str, unicode, int, float)):
+            if not isinstance(val, (str, bytes, int, float)):
                 fieldErrors.append((name, "Bad type: %r" % type(val)))
         return fieldErrors
 
@@ -119,7 +119,7 @@ class SectionData(object):
         imageErrors = []
         for name in images:
             filename = images[name]
-            if not isinstance(filename, (str, unicode)):
+            if not isinstance(filename, (str, bytes)):
                 imageErrors.append((name, "Filename is not a string: %r" % type(val)))
         return imageErrors
 
@@ -144,19 +144,32 @@ class ODTFileTemplate(object):
         outZipFile = zipfile.ZipFile(outZipFilename, "w")
         for fileInfo in inZipFile.filelist:
             if fileInfo.filename == "content.xml" and self.contentTemplate is not None:
-                s = StringIO.StringIO()
+                s = io.StringIO()
                 self.contentTemplate.write(s, data, self.appendImage)
-                _make_utf8_evilly(s)
-                outZipFile.writestr(fileInfo, s.getvalue())
+                content_str = s.getvalue()
+                if not content_str.strip():
+                    # If content is empty, copy the original content.xml
+                    outZipFile.writestr(fileInfo, inZipFile.read(fileInfo.filename))
+                else:
+                    # Write the content directly without pretty printing
+                    outZipFile.writestr(fileInfo, content_str.encode('UTF-8'))
+                        
             elif fileInfo.filename == "styles.xml" and self.stylesTemplate is not None:
-                s = StringIO.StringIO()
+                s = io.StringIO()
                 self.stylesTemplate.write(s, data, self.appendImage)
-                _make_utf8_evilly(s)
-                outZipFile.writestr(fileInfo, s.getvalue())
+                styles_str = s.getvalue()
+                if not styles_str.strip():
+                    # If styles is empty, copy the original styles.xml
+                    outZipFile.writestr(fileInfo, inZipFile.read(fileInfo.filename))
+                else:
+                    # Write the styles directly without pretty printing
+                    outZipFile.writestr(fileInfo, styles_str.encode('UTF-8'))
+                        
             elif fileInfo.filename == "META-INF/manifest.xml":
                 pass # XXX will do this at the end, to add images
             else:
                 outZipFile.writestr(fileInfo, inZipFile.read(fileInfo.filename))
+
         for filename in self.imageList:
             basename = os.path.basename(filename)
             outZipFile.write(filename, arcname="Pictures/%s" % basename)
@@ -164,10 +177,11 @@ class ODTFileTemplate(object):
         manifestFileList = [x for x in inZipFile.filelist if x.filename == "META-INF/manifest.xml"]
         if manifestFileList:
             manifestFileInfo = manifestFileList[0]
-            manifestStr = inZipFile.read(manifestFileInfo.filename)
+            manifestStr = inZipFile.read(manifestFileInfo.filename).decode('UTF-8')
             extraFileTags = ["""<manifest:file-entry manifest:media-type="image/png" manifest:full-path="Pictures/%s"/>""" % os.path.basename(f) for f in self.imageList]
-            newManifestStr = re.sub(ur"(?=<manifest:file-entry\b)", "".join(extraFileTags), manifestStr)
-            outZipFile.writestr(manifestFileInfo, newManifestStr)
+            newManifestStr = re.sub(r"(?=<manifest:file-entry\b)", "".join(extraFileTags), manifestStr)
+            # Write manifest directly without pretty printing
+            outZipFile.writestr(manifestFileInfo, newManifestStr.encode('UTF-8'))
 
         outZipFile.close()
 
@@ -216,16 +230,25 @@ class BookContentTemplate(XMLFileTemplate):
     def __init__(self, *args, **kwargs):
         super(BookContentTemplate, self).__init__(*args, **kwargs)
         self.sections = {}
+        self.section_count = {}  # Track count of each section name
 
     def addSection(self, name, section):
-        if self.sections.has_key(name): raise TemplateError("Duplicate section name: %r" % (name,))
+        # If this section name already exists, append a number to make it unique
+        base_name = name
+        if base_name in self.section_count:
+            count = self.section_count[base_name] + 1
+            self.section_count[base_name] = count
+            name = f"{base_name}_{count}"
+        else:
+            self.section_count[base_name] = 1
+            
         self.sections[name] = section
 
     def getStructure(self):
         structure = []
         for name, section in self.sections.items():
             for x in getStructure(section):
-                structure.append(("content", name, x))
+                structure.append(("content", name.split('_')[0], x))  # Use base name without counter
         return structure
 
     def writeParts(self, stream, data, appendImage):
@@ -238,18 +261,26 @@ class BookContentTemplate(XMLFileTemplate):
 
         errorStrings = []
 
-        # Check for missing sections
+        # Check for missing sections using base names
         sectionNames = set(x[0] for x in dataOb.sections)
-        missingSections = sectionNames - set(self.sections.keys())
+        baseNames = set(name.split('_')[0] for name in self.sections.keys())
+        missingSections = sectionNames - baseNames
         if missingSections:
             errorStrings.append(("The following sections are in the data but not the template: %r" % tuple(sorted(missingSections))))
 
+        # Map data sections to template sections
         for i, (sectionName, sectionData) in enumerate(dataOb.sections):
-            section = self.sections.get(sectionName)
-            if section is None: continue # error trapped above
+            # Find matching section (either exact match or base name match)
+            section = None
+            for template_name, template_section in self.sections.items():
+                if template_name.split('_')[0] == sectionName:
+                    section = template_section
+                    break
+                    
+            if section is None: continue  # error trapped above
             try:
                 section.write(stream, sectionData, appendImage)
-            except (DataError, TypeError), ex:
+            except (DataError, TypeError) as ex:
                 msg = str(ex)
                 errorStrings.append("section %i (%r): %s" % (i, sectionName, msg))
         if errorStrings:
@@ -325,11 +356,9 @@ class Section(object):
                 stream.write(e)
             elif eType == "VARIABLE":
                 try:
-                    rawString = unicode(fieldData[e])
-                except UnicodeError:
-                    rawString = u"xxx"
+                    rawString = str(fieldData[e])
                 except KeyError:
-                    raise ValueError, "No value for field %r in section %r" % (e, self.identifier)
+                    raise ValueError("No value for field %r in section %r" % (e, self.identifier))
                 stream.write(xmlEscape(rawString))
             elif eType == "IMAGE":
                 imageName, defaultArcFilename = e
@@ -337,7 +366,7 @@ class Section(object):
                 if filename is None:
                     rawArcFilename = defaultArcFilename
                 else:
-                    rawArcFilename = u"Pictures/%s" % os.path.basename(filename)
+                    rawArcFilename = "Pictures/%s" % os.path.basename(filename)
                     appendImage(filename)
                 stream.write(xmlEscapeAttr(rawArcFilename))
             elif eType == "TABLE":
@@ -345,10 +374,10 @@ class Section(object):
                 try:
                     tData = tableData[tableName]
                 except KeyError:
-                    raise ValueError, "No data for table %r in section %r" % (tableName, self.identifier)
+                    raise ValueError("No data for table %r in section %r" % (tableName, self.identifier))
                 table.write(stream, tData)
             else:
-                raise ValueError, "Unknown type %r in template, section %r " % (eType, self.identifier)
+                raise ValueError("Unknown type %r in template, section %r " % (eType, self.identifier))
 
 
 class Table(object):
@@ -373,7 +402,7 @@ class Table(object):
 
     def write(self, stream, data):
         stream.writelines(self.beforeText)
-        for i in xrange(len(data)):
+        for i in range(len(data)):
             rowFields = data[i]
             self.row.write(stream, rowFields, rowNo=i)
         stream.writelines(self.afterText)
@@ -404,25 +433,21 @@ class Row(object):
                 try:
                     v = fields[e]
                     if v is None:
-                        rawString = u""
-                    if isinstance(v, str):
-                        rawString = v.decode('UTF-8')
+                        rawString = ""
+                    elif isinstance(v, str):
+                        rawString = v
                     else:
-                        rawString = unicode(v)
-                except KeyError:
-                    raise ValueError, "No value for field %r in table %r[row=%d]" % (e, self.tableIdentifier, rowNo)
+                        rawString = str(v)
+                except KeyError as ex:
+                    raise ValueError("No value for field %r in table %r[row=%d]" % (e, self.tableIdentifier, rowNo))
                 stream.write(xmlEscape(rawString))
             else:
-                raise ValueError, "Unknown type %r in template, table %r" % (eType, self.tableIdentifier)
+                raise ValueError("Unknown type %r in template, table %r" % (eType, self.tableIdentifier))
 
 
 def xmlEscape(s):
-    print "s=%r" % (s,)
+    print("s=%r" % (s,))
     return s.replace('&', '&amp;').replace('<', '&lt;')
 def xmlEscapeAttr(s):
     return s.replace('&', '&amp;').replace('<', '&lt;').replace('"', '&quot;')
-def _make_utf8_evilly(stringIO):
-    b = stringIO.buflist
-    for i in range(len(b)):
-        if isinstance(b[i], unicode): b[i] = b[i].encode("UTF-8")
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """Adds OpenDocMill template fields to an ODT document"""
 
@@ -15,9 +15,9 @@ class TemplateError(IOError):
 def getOneByTagName(doc, NS, tag):
     nodes = doc.getElementsByTagNameNS(NS, tag)
     if len(nodes) == 0:
-        raise TemplateError("Cannot find %s:%s" % (NS, tag))
+        raise TemplateError(f"Cannot find {NS}:{tag}")
     if len(nodes) > 1:
-        raise TemplateError("Multiple s:%s nodes" % (NS, tag))
+        raise TemplateError(f"Multiple {NS}:{tag} nodes")
     return nodes[0]
 
 def getVariableDecls(doc):

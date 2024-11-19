@@ -1,23 +1,7 @@
+#!/usr/bin/env python3
+
 import string
 import types
-##    json.py implements a JSON (http://json.org) reader and writer.
-##    Copyright (C) 2005  Patrick D. Logan
-##    Contact mailto:patrickdlogan@stardecisions.com
-##
-##    This library is free software; you can redistribute it and/or
-##    modify it under the terms of the GNU Lesser General Public
-##    License as published by the Free Software Foundation; either
-##    version 2.1 of the License, or (at your option) any later version.
-##
-##    This library is distributed in the hope that it will be useful,
-##    but WITHOUT ANY WARRANTY; without even the implied warranty of
-##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-##    Lesser General Public License for more details.
-##
-##    You should have received a copy of the GNU Lesser General Public
-##    License along with this library; if not, write to the Free Software
-##    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
 
 class _StringGenerator(object):
 	def __init__(self, string):
@@ -29,12 +13,13 @@ class _StringGenerator(object):
 			return self.string[i]
 		else:
 			return None
-	def next(self):
+	def __next__(self):
 		self.index += 1
 		if self.index < len(self.string):
 			return self.string[self.index]
 		else:
 			raise StopIteration
+	next = __next__
 	def all(self):
 		return self.string
 
@@ -57,7 +42,7 @@ class JsonReader(object):
         self._eatWhitespace()
         peek = self._peek()
         if peek is None:
-            raise ReadException, "Nothing to read: '%s'" % self._generator.all()
+            raise ReadException("Nothing to read: '%s'" % self._generator.all())
         if peek == '{':
             return self._readObject()
         elif peek == '[':
@@ -76,7 +61,7 @@ class JsonReader(object):
             self._readComment()
             return self._read()
         else:
-            raise ReadException, "Input is not valid JSON: '%s'" % self._generator.all()
+            raise ReadException("Input is not valid JSON: '%s'" % self._generator.all())
 
     def _readTrue(self):
         self._assertNext('t', "true")
@@ -102,7 +87,7 @@ class JsonReader(object):
 
     def _assertNext(self, ch, target):
         if self._next() != ch:
-            raise ReadException, "Trying to read %s: '%s'" % (target, self._generator.all())
+            raise ReadException("Trying to read %s: '%s'" % (target, self._generator.all()))
 
     def _readNumber(self):
         isfloat = False
@@ -118,7 +103,7 @@ class JsonReader(object):
             else:
                 return int(result)
         except ValueError:
-            raise ReadException, "Not a valid JSON number: '%s'" % result
+            raise ReadException("Not a valid JSON number: '%s'" % result)
 
     def _readString(self):
         result = ""
@@ -131,20 +116,20 @@ class JsonReader(object):
                     if ch in 'brnft':
                         ch = self.escapes[ch]
                     elif ch == "u":
-		        ch4096 = self._next()
-			ch256  = self._next()
-			ch16   = self._next()
-			ch1    = self._next()
-			n = 4096 * self._hexDigitToInt(ch4096)
-			n += 256 * self._hexDigitToInt(ch256)
-			n += 16  * self._hexDigitToInt(ch16)
-			n += self._hexDigitToInt(ch1)
-			ch = unichr(n)
+                        ch4096 = self._next()
+                        ch256  = self._next()
+                        ch16   = self._next()
+                        ch1    = self._next()
+                        n = 4096 * self._hexDigitToInt(ch4096)
+                        n += 256 * self._hexDigitToInt(ch256)
+                        n += 16  * self._hexDigitToInt(ch16)
+                        n += self._hexDigitToInt(ch1)
+                        ch = chr(n)
                     elif ch not in '"/\\':
-                        raise ReadException, "Not a valid escaped JSON character: '%s' in %s" % (ch, self._generator.all())
+                        raise ReadException("Not a valid escaped JSON character: '%s' in %s" % (ch, self._generator.all()))
                 result = result + ch
         except StopIteration:
-            raise ReadException, "Not a valid JSON string: '%s'" % self._generator.all()
+            raise ReadException("Not a valid JSON string: '%s'" % self._generator.all())
         assert self._next() == '"'
         return result
 
@@ -154,8 +139,8 @@ class JsonReader(object):
         except KeyError:
             try:
                 result = int(ch)
-	    except ValueError:
-	         raise ReadException, "The character %s is not a hex digit." % ch
+            except ValueError:
+                raise ReadException("The character %s is not a hex digit." % ch)
         return result
 
     def _readComment(self):
@@ -166,7 +151,7 @@ class JsonReader(object):
         elif second == '*':
             self._readCStyleComment()
         else:
-            raise ReadException, "Not a valid JSON comment: %s" % self._generator.all()
+            raise ReadException("Not a valid JSON comment: %s" % self._generator.all())
 
     def _readCStyleComment(self):
         try:
@@ -175,10 +160,10 @@ class JsonReader(object):
                 ch = self._next()
                 done = (ch == "*" and self._peek() == "/")
                 if not done and ch == "/" and self._peek() == "*":
-                    raise ReadException, "Not a valid JSON comment: %s, '/*' cannot be embedded in the comment." % self._generator.all()
+                    raise ReadException("Not a valid JSON comment: %s, '/*' cannot be embedded in the comment." % self._generator.all())
             self._next()
         except StopIteration:
-            raise ReadException, "Not a valid JSON comment: %s, expected */" % self._generator.all()
+            raise ReadException("Not a valid JSON comment: %s, expected */" % self._generator.all())
 
     def _readDoubleSolidusComment(self):
         try:
@@ -200,7 +185,7 @@ class JsonReader(object):
             if not done:
                 ch = self._next()
                 if ch != ",":
-                    raise ReadException, "Not a valid JSON array: '%s' due to: '%s'" % (self._generator.all(), ch)
+                    raise ReadException("Not a valid JSON array: '%s' due to: '%s'" % (self._generator.all(), ch))
         assert ']' == self._next()
         return result
 
@@ -210,12 +195,12 @@ class JsonReader(object):
         done = self._peek() == '}'
         while not done:
             key = self._read()
-            if type(key) is not types.StringType and type(key) is not types.UnicodeType:
-                raise ReadException, "Not a valid JSON object key (should be a string): %s" % key
+            if not isinstance(key, str):
+                raise ReadException("Not a valid JSON object key (should be a string): %s" % key)
             self._eatWhitespace()
             ch = self._next()
             if ch != ":":
-                raise ReadException, "Not a valid JSON object: '%s' due to: '%s'" % (self._generator.all(), ch)
+                raise ReadException("Not a valid JSON object: '%s' due to: '%s'" % (self._generator.all(), ch))
             self._eatWhitespace()
             val = self._read()
             result[key] = val
@@ -224,8 +209,8 @@ class JsonReader(object):
             if not done:
                 ch = self._next()
                 if ch != ",":
-                    raise ReadException, "Not a valid JSON array: '%s' due to: '%s'" % (self._generator.all(), ch)
-	assert self._next() == "}"
+                    raise ReadException("Not a valid JSON array: '%s' due to: '%s'" % (self._generator.all(), ch))
+        assert self._next() == "}"
         return result
 
     def _eatWhitespace(self):
@@ -256,7 +241,7 @@ class JsonWriter(object):
 
     def _write(self, obj):
         ty = type(obj)
-        if ty is types.DictType:
+        if isinstance(obj, dict):
             n = len(obj)
             self._append("{")
             for k, v in obj.items():
@@ -267,7 +252,7 @@ class JsonWriter(object):
                 if n > 0:
                     self._append(",")
             self._append("}")
-        elif ty is types.ListType or ty is types.TupleType:
+        elif isinstance(obj, (list, tuple)):
             n = len(obj)
             self._append("[")
             for item in obj:
@@ -276,23 +261,21 @@ class JsonWriter(object):
                 if n > 0:
                     self._append(",")
             self._append("]")
-        elif ty is types.StringType or ty is types.UnicodeType:
+        elif isinstance(obj, str):
             self._append('"')
-	    obj = obj.replace('\\', r'\\')
+            obj = obj.replace('\\', r'\\')
             if self._escaped_forward_slash:
                 obj = obj.replace('/', r'\/')
-	    obj = obj.replace('"', r'\"')
-	    obj = obj.replace('\b', r'\b')
-	    obj = obj.replace('\f', r'\f')
-	    obj = obj.replace('\n', r'\n')
-	    obj = obj.replace('\r', r'\r')
-	    obj = obj.replace('\t', r'\t')
+            obj = obj.replace('"', r'\"')
+            obj = obj.replace('\b', r'\b')
+            obj = obj.replace('\f', r'\f')
+            obj = obj.replace('\n', r'\n')
+            obj = obj.replace('\r', r'\r')
+            obj = obj.replace('\t', r'\t')
             self._append(obj)
             self._append('"')
-        elif ty is types.IntType or ty is types.LongType:
+        elif isinstance(obj, (int, float)):
             self._append(str(obj))
-        elif ty is types.FloatType:
-            self._append("%f" % obj)
         elif obj is True:
             self._append("true")
         elif obj is False:
@@ -300,7 +283,7 @@ class JsonWriter(object):
         elif obj is None:
             self._append("null")
         else:
-            raise WriteException, "Cannot write in JSON: %s" % repr(obj)
+            raise WriteException("Cannot write in JSON: %s" % repr(obj))
 
 def write(obj, escaped_forward_slash=False):
     return JsonWriter().write(obj, escaped_forward_slash)
