@@ -201,18 +201,18 @@ class ODTVisitor(XMLPrinter):
                     raise TemplateError(f"Found table variable {variableName} but no row is active")
                 self.row.addVariable(localName)
                 # Write the variable placeholder
-                self.write(f'<text:variable-set text:name="{variableName}">')
-                self.write(f"${{{variableName}}}")  # Add placeholder
-                self.write('</text:variable-set>')
+                # self.write(f'<text:variable-set text:name="{variableName}">')
+                # self.write(f"${{{variableName}}}")  # Add placeholder
+                # self.write('</text:variable-set>')
             elif self.writeState == "TABLE" and tableName == self.tableName:
                 if self.row is None:
                     self.row = OpenDocMill.Row(self.table.identifier)
                     self.table.setRow(self.row)
                 self.row.addVariable(localName)
                 # Write the variable placeholder
-                self.write(f'<text:variable-set text:name="{variableName}">')
-                self.write(f"${{{variableName}}}")  # Add placeholder
-                self.write('</text:variable-set>')
+                # self.write(f'<text:variable-set text:name="{variableName}">')
+                # self.write(f"${{{variableName}}}")  # Add placeholder
+                # self.write('</text:variable-set>')
             else:
                 raise TemplateError("Unexpected variable %r: state=%r, tableName=%r, template=%r" % 
                                   (variableName, self.writeState, self.tableName, self.template.identifier))
@@ -220,15 +220,15 @@ class ODTVisitor(XMLPrinter):
         elif self.writeState == "SECTION":
             self.section.addVariable(variableName)
             # Write the variable placeholder
-            self.write(f'<text:variable-set text:name="{variableName}">')
-            self.write(f"${{{variableName}}}")  # Add placeholder
-            self.write('</text:variable-set>')
+            # self.write(f'<text:variable-set text:name="{variableName}">')
+            # self.write(f"${{{variableName}}}")  # Add placeholder
+            # self.write('</text:variable-set>')
         elif self.writeState == "TABLE":
             self.section.addVariable(variableName)
             # Write the variable placeholder
-            self.write(f'<text:variable-set text:name="{variableName}">')
-            self.write(f"${{{variableName}}}")  # Add placeholder
-            self.write('</text:variable-set>')
+            # self.write(f'<text:variable-set text:name="{variableName}">')
+            # self.write(f"${{{variableName}}}")  # Add placeholder
+            # self.write('</text:variable-set>')
         else:
             raise TemplateError("Unexpected variable %r: state=%r, tableName=%r, template=%r" % 
                               (variableName, self.writeState, self.tableName, self.template.identifier))
