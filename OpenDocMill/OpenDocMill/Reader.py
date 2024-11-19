@@ -4,7 +4,8 @@ import xml.dom.minidom
 import io
 import zipfile
 import OpenDocMill
-from xml.etree import ElementTree
+# from xml.etree import ElementTree, fromstring
+# from lxml import etree
 
 TEXT = "urn:oasis:names:tc:opendocument:xmlns:text:1.0"
 DRAW = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0"
@@ -23,6 +24,8 @@ class XMLPrinter:
         self.encoding = encoding
         self.nsHints = nsHints or {}
         self.indent_level = 0
+        self._html = None
+
         
     def write(self, text):
         if isinstance(text, (list, tuple)):
@@ -33,12 +36,39 @@ class XMLPrinter:
 
     def visit(self, node):
         if node.nodeType == node.ELEMENT_NODE:
-            self.visitElement(node)
+            return self.visitElement(node)
         elif node.nodeType == node.TEXT_NODE:
-            self.visitText(node)
+            return self.visitText(node)
         elif node.nodeType == node.ATTRIBUTE_NODE:
-            self.visitAttr(node)
+            return self.visitAttr(node)
+        elif node.nodeType == node.CDATA_SECTION_NODE:
+            return self.visitCDATASection(node)
 
+        elif node.nodeType == node.ENTITY_REFERENCE_NODE:                                                             
+            return self.visitEntityReference(node)                                                                    
+                                                                                                                      
+        elif node.nodeType == node.ENTITY_NODE:                                                                       
+            return self.visitEntity(node)                                                                             
+                                                                                                                      
+        elif node.nodeType == node.PROCESSING_INSTRUCTION_NODE:                                                       
+            return self.visitProcessingInstruction(node)                                                              
+                                                                                                                      
+        elif node.nodeType == node.COMMENT_NODE:                                                                      
+            return self.visitComment(node)                                                                            
+                                                                                                                      
+        elif node.nodeType == node.DOCUMENT_NODE:                                                                     
+            return self.visitDocument(node)                                                                           
+                                                                                                                      
+        elif node.nodeType == node.DOCUMENT_TYPE_NODE:                                                                
+            return self.visitDocumentType(node)                                                                       
+                                                                                                                      
+        elif node.nodeType == node.DOCUMENT_FRAGMENT_NODE:                                                            
+            return self.visitDocumentFragment(node)                                                                   
+                                                                                                                      
+        elif node.nodeType == node.NOTATION_NODE:                                                                     
+            return self.visitNotation(node)      
+        raise Exception("Unknown node type is: %s " % node.nodeType)
+    
     def visitElement(self, node):
         # Get the original XML string for this node
         if node.prefix:
@@ -75,6 +105,23 @@ class XMLPrinter:
             name = attr.localName
         value = attr.value
         self.write(f' {name}="{value}"')
+
+    def visitDocument(self, node):                                                                                    
+        not self._html and self.visitProlog()                                                                         
+        node.doctype and self.visitDocumentType(node.doctype)                                                         
+        self.visitNodeList(node.childNodes, exclude=node.doctype)                                                     
+        return 
+     
+    def visitProlog(self):                                                                                            
+        self.write("<?xml version='1.0' encoding='%s'?>" % (                                                         
+            self.encoding or 'utf-8'                                                                                  
+            ))                                                                                                        
+        self._inText = 0                                                                                              
+        return             
+    def visitNodeList(self, node, exclude=None):                                                                      
+        for curr in node:
+            curr is not exclude and self.visit(curr)
+        return
 
 class FakeStream(object):
     def write(self, text):
@@ -343,8 +390,10 @@ def getTableAndLastRowIDs(doc):
 
 def readXML(xmlStream, fileIdentifier, VisitorClass, TemplateClass, appendImage):
     doc = xml.dom.minidom.parse(xmlStream)
+    # doc = etree.parse(xmlStream)
+    # # doc = etree.string(xmlStream)
     idTables, idLastRows = getTableAndLastRowIDs(doc)
-    nss = {}  # Replace xml.dom.ext.SeekNss with empty dict for now
+    nss = seek_nss(doc)  # Replace xml.dom.ext.SeekNss with empty dict for now
     template = TemplateClass(str(fileIdentifier), appendImage)  # Changed unicode to str
     visitor = VisitorClass(template, idTables, idLastRows, nss)
     visitor.visit(doc)  # Use our new XMLPrinter's visit method
@@ -379,3 +428,35 @@ def readReportODT(filename):
 
 def readODT(filename):
     return readBookODT(filename)
+
+
+
+def seek_nss(node):
+    """
+    Recursively gathers namespaces declared in a DOM tree.
+    
+    Args:
+        node: A DOM node.
+    
+    Returns:
+        A dictionary mapping namespace prefixes to URIs.
+    """
+    namespaces = {}
+    
+    # Check attributes for namespace declarations
+    if node.attributes:
+        for attr_name, attr_value in node.attributes.items():
+            if attr_name.startswith("xmlns"):
+                # Default namespace
+                if attr_name == "xmlns":
+                    namespaces[None] = attr_value
+                else:
+                    # Namespace with prefix
+                    prefix = attr_name.split(":")[1]
+                    namespaces[prefix] = attr_value
+
+    # Recursively check child nodes
+    for child in node.childNodes:
+        namespaces.update(seek_nss(child))
+
+    return namespaces

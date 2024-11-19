@@ -1,7 +1,8 @@
 #!/usr/bin/env perl
-use warnings;
 
 use strict;
+use warnings;
+
 use JSON;
 use IPC::Open3;
 use Carp;
