@@ -23,9 +23,9 @@ if len(args) != 2:
     sys.exit(1)
 
 inTemplate, outDoc = args
-instream = codecs.getreader('utf8')(sys.stdin)
+# TODO check with  utf-8 encoded data.
+input = sys.stdin.read() # read whole multi-line input as string
 
-input = instream.read() # read whole multi-line input as string 
 inputData = json.read(input) # convert to list of (page info data structure)
 fields    = inputData.get("fields", {})
 tables    = inputData.get("tables", {})
