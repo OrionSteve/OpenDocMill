@@ -6,6 +6,21 @@ import os.path
 import re
 import xml.dom.minidom
 
+#### PACKAGE INFO #########################################################################################
+#### Set up new conversion object with "[reportObject] = OpenDocMill.Reader.readReportODT(template)".
+#### "template" being the odt template file name.
+####
+#### Convert new file using "[reportObject].write(out, data)".
+#### "out" being the new file name.
+#### "data" needs to be an object like "OpenDocMill.ReportData(fields=fields, tables=tables, images=images).
+####
+#### All three data input variables are hashes, mapping template variable names to their real values.
+#### Images should be submitted as file names.
+#### The "tables" data input is a hash of table-names, each table name is assigned an array for every new line
+#### of data in the table.
+#### Each table array entry is a hash of table row variables.
+####
+#### ######################################################################################################
 
 class DataError(Exception): pass
 class TemplateError(Exception): pass
@@ -143,6 +158,12 @@ class ODTFileTemplate(object):
     def write(self, outZipFilename, data):
         inZipFile = zipfile.ZipFile(self.inZipFilename, "r")
         outZipFile = zipfile.ZipFile(outZipFilename, "w")
+        ### zipfile treats the .odt files like an archive.
+        ### .odt contains files 'content.xml' - and 'styles.xml'
+        ### function creates new file, copies template data across line by line
+        ### finds replaceable variables in template ---.xml files
+        ### and replaces/appends with inData as it writes to output file
+
         for fileInfo in inZipFile.filelist:
             if fileInfo.filename == "content.xml" and self.contentTemplate is not None:
                 s = io.StringIO()
@@ -451,4 +472,3 @@ def xmlEscape(s):
     return s.replace('&', '&amp;').replace('<', '&lt;')
 def xmlEscapeAttr(s):
     return s.replace('&', '&amp;').replace('<', '&lt;').replace('"', '&quot;')
-

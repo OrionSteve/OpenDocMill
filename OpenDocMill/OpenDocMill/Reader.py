@@ -18,6 +18,10 @@ DataError = OpenDocMill.DataError
 TemplateError = OpenDocMill.TemplateError
 
 class XMLPrinter:
+    ### generate DOM tree from template data
+    ### search content.xml for table names, rows, and 'variable-set'
+    ### search styles.xml for replaceable images
+
     """Modern replacement for xml.dom.ext.Printer"""
     def __init__(self, stream, encoding="UTF-8", nsHints=None):
         self.stream = stream
