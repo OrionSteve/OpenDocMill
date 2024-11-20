@@ -319,33 +319,39 @@ class ODTBookContentVisitor(ODTVisitor):
         self.template.addSection(sectionName, self.section)
 
 class ODTReportContentVisitor(ODTVisitor):
-    def __init__(self, template, idTables, idLastRows, nsHints):
-        super().__init__(template, idTables, idLastRows, nsHints)
-        # Initialize main section immediately
-        self.section = OpenDocMill.Section(self.template.identifier + "#MAIN")
-        self.template.addMainSection(self.section)
-        self.writeState = "SECTION"  # Start in SECTION state
+    # def __init__(self, template, idTables, idLastRows, nsHints):
+    #     super().__init__(template, idTables, idLastRows, nsHints)
+    #     # Initialize main section immediately
+    #     self.section = OpenDocMill.Section(self.template.identifier + "#MAIN")
+    #     self.template.addMainSection(self.section)
+    #     self.writeState = "SECTION"  # Start in SECTION state
 
+    # def isSectionNode(self, node):
+    #     # For report templates, we want to start the main section at the beginning
+    #     # of the document
+    #     return False  # We don't need to look for section nodes since we create the section immediately
+
+    # def addSection(self, node):
+    #     pass  # Section is already created in __init__
+
+    # def visitElement(self, node):
+    #     if node.namespaceURI == TEXT and node.localName == "variable-set":
+    #         self.visitVariableSet(node)
+    #     elif node.namespaceURI == TABLE and node.localName == "table" and id(node) in self.idTables:
+    #         self.visitTable(node)
+    #     elif node.namespaceURI == TABLE and node.localName == "table-row" and id(node) in self.idLastRows:
+    #         self.visitLastRow(node)
+    #     elif node.namespaceURI == DRAW and node.localName == "image":
+    #         self.visitImage(node)
+    #     else:
+    #         # just print as normal
+    #         XMLPrinter.visitElement(self, node)
     def isSectionNode(self, node):
-        # For report templates, we want to start the main section at the beginning
-        # of the document
-        return False  # We don't need to look for section nodes since we create the section immediately
+        return node.namespaceURI == TEXT and node.localName == "variable-decls"
 
     def addSection(self, node):
-        pass  # Section is already created in __init__
-
-    def visitElement(self, node):
-        if node.namespaceURI == TEXT and node.localName == "variable-set":
-            self.visitVariableSet(node)
-        elif node.namespaceURI == TABLE and node.localName == "table" and id(node) in self.idTables:
-            self.visitTable(node)
-        elif node.namespaceURI == TABLE and node.localName == "table-row" and id(node) in self.idLastRows:
-            self.visitLastRow(node)
-        elif node.namespaceURI == DRAW and node.localName == "image":
-            self.visitImage(node)
-        else:
-            # just print as normal
-            XMLPrinter.visitElement(self, node)
+        self.section = OpenDocMill.Section(self.template.identifier + "#MAIN")
+        self.template.addMainSection(self.section)
 
 class ODTStyleVisitor(ODTVisitor):
     def isSectionNode(self, node):
