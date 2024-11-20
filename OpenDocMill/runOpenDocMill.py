@@ -2,7 +2,7 @@
 
 import sys
 import os
-import json as stdlib_json  # Rename to avoid conflict with our custom json module
+#import json as stdlib_json  # Rename to avoid conflict with our custom json module
 
 scriptdir = os.path.dirname(sys.argv[0])
 libdir = os.path.join(scriptdir, "OpenDocMill")
@@ -27,7 +27,7 @@ if len(args) != 2:
 inTemplate, outDoc = args
 
 input_data = sys.stdin.read()  # read whole multi-line input as string 
-raw_data = json.read(input_data)  # Use our custom json.read instead of json.loads
+raw_data = json.loads(input_data)  # Use our custom json.read instead of json.loads
 
 # Convert the raw data into a ReportData object
 if isinstance(raw_data, dict):

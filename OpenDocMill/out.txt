@@ -1,0 +1,52 @@
+﻿INVOICE
+
+
+Invoice no: SL0010040
+Account: 508
+Invoice Date: 08/04/09
+
+CHURCHILL ENGINEERING
+63, TUDOR CLOSE
+LONDON
+NW3 4AG
+UNITED KINGDOM
+
+Request
+Ref
+Date
+Product
+Qty
+Price
+3215783
+RAYD-2009-0406
+10 Apr
+Beef -Aberdeen Angus -5kg
+1
+111.51
+3215784
+RAYD-2009-0406
+10 Apr
+Apples Cox -each
+100
+6.78
+3215784
+RAYD-2009-0406
+10 Apr
+Apples Bramley -per Kilo
+10
+21.56
+
+Note: Items supplied under pre-agreed terms and conditions
+
+VAT rate
+Taxable
+Zero rated
+VAT
+15%
+360.25
+0
+54.04
+
+INVOICE TOTAL: £414.29
+
+Payment due 28 days from date of invoice
