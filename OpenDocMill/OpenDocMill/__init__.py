@@ -136,7 +136,7 @@ class SectionData(object):
         for name in images:
             filename = images[name]
             if not isinstance(filename, (str, bytes)):
-                imageErrors.append((name, "Filename is not a string: %r" % type(val)))
+                imageErrors.append((name, "Filename is not a string: %r" % type(filename)))
         return imageErrors
 
 
