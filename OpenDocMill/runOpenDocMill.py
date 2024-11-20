@@ -27,7 +27,7 @@ if len(args) != 2:
 inTemplate, outDoc = args
 
 input_data = sys.stdin.read()  # read whole multi-line input as string 
-raw_data = json.loads(input_data)  # Use our custom json.read instead of json.loads
+raw_data = json.loads(input_data) 
 
 # Convert the raw data into a ReportData object
 if isinstance(raw_data, dict):
