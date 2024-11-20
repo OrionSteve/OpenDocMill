@@ -67,8 +67,8 @@ FILTER_FOR_EXTENSION = dict(
 )
 
 class DocConverter(object):
-    def __init__(self, sofficeCmd, timeout):
-        self.sofficeCmd = sofficeCmd
+    def __init__(self, libreofficeCmd, timeout):
+        self.libreofficeCmd = libreofficeCmd
         self.timeout=timeout
 
     def guessFilterCode(self, extension):
@@ -96,7 +96,7 @@ class DocConverter(object):
             shutil.copy(inAbs, inTmp)
 
         filterCode = self.guessFilterCode(outExt)
-        args = [self.sofficeCmd, "--headless", "--convert-to", filterCode, "--outdir", outDirName, inTmp]
+        args = [self.libreofficeCmd, "--headless", "--convert-to", filterCode, "--outdir", outDirName, inTmp]
         sys.stderr.write("Running Conversion: %r" % args)
         p = subprocess.Popen(args)
         # wait for p to terminate
@@ -118,9 +118,9 @@ if __name__ == '__main__':
     try:
         inFile, outFile = args
     except ValueError:
-        sys.stderr.write("Usage: %s [--cmd=soffice] [--timeout=20] inFile outFile\n" % sys.argv[0])
+        sys.stderr.write("Usage: %s [--cmd=libreoffice] [--timeout=20] inFile outFile\n" % sys.argv[0])
         sys.exit(1)
-    cmd = dict(opts).get("--cmd", "soffice")
+    cmd = dict(opts).get("--cmd", "libreoffice")
     timeout = int(dict(opts).get("--timeout", "20"))
     dc = DocConverter(cmd, timeout)
     dc.convert(inFile, outFile)
