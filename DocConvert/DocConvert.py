@@ -1,5 +1,29 @@
 #!/usr/bin/env python3
+"""Convert between document formats with OOo, from the command line.
 
+
+AUTHOR
+
+Copyright (c) 2024, Orion Web Technologies (https://www.orionwt.co.uk/)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+"""
 import sys
 import os
 import re
@@ -56,21 +80,21 @@ class DocConverter(object):
     def convert(self, inFilename, outFilename):
         inAbs = absolute(inFilename)
         outAbs = absolute(outFilename)
-        
+
         inStart, inExt = os.path.splitext(inAbs)
         outStart, outExt = os.path.splitext(outAbs)
-        
+
         # If there is no conversion to do, just copy
         if inExt.lower() == outExt.lower():
             shutil.copy(inAbs, outAbs)
             return
-        
+
         outDirName = os.path.dirname(outAbs)
-        
+
         inTmp = outStart + inExt
         if inTmp != inAbs:
             shutil.copy(inAbs, inTmp)
-        
+
         filterCode = self.guessFilterCode(outExt)
         args = [self.sofficeCmd, "--headless", "--convert-to", filterCode, "--outdir", outDirName, inTmp]
         sys.stderr.write("Running Conversion: %r" % args)
@@ -79,7 +103,7 @@ class DocConverter(object):
         while True:
             time.sleep(0.1)
             result = p.poll()
-            if result is not None: break 
+            if result is not None: break
         # wait for logFilename to appear
         startTime = time.time()
         while not os.path.exists(outAbs):
@@ -88,7 +112,7 @@ class DocConverter(object):
             time.sleep(0.1)
         if inTmp != inAbs:
             os.unlink(inTmp)
-        
+
 if __name__ == '__main__':
     opts, args = getopt.gnu_getopt(sys.argv[1:], "", ["cmd=", "timeout="])
     try:
