@@ -6,6 +6,7 @@ import os.path
 import re
 import xml.dom.minidom
 
+
 class DataError(Exception): pass
 class TemplateError(Exception): pass
 
